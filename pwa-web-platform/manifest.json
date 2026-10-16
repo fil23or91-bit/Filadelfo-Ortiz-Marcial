@@ -1,0 +1,21 @@
+{
+  "name": "EduFacial Pro - Control Escolar & Asistencia",
+  "short_name": "EduFacial Pro",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1E3A8A",
+  "theme_color": "#1E3A8A",
+  "description": "Plataforma web multidispositivo de control escolar, reconocimiento facial y comunicación con tutores por WhatsApp.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

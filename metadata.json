@@ -1,0 +1,6 @@
+{
+  "name": "EduFacial Pro",
+  "description": "Sistema de asistencia escolar con reconocimiento facial, control de calificaciones y comunicación directa con tutores por WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduFacial Pro - Plataforma Web & PWA</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#1E3A8A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EduFacial Pro">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .face-box {
+      border: 3px solid #10B981;
+      border-radius: 8px;
+      position: absolute;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.7);
+    }
+    .face-badge {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.85);
+      color: white;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-900 text-white flex items-center justify-center font-bold text-xl shadow-md">
+          <i class="fa-solid fa-id-badge"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-black text-blue-950 tracking-tight leading-tight flex items-center gap-2">
+            EduFacial Pro <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 hidden sm:inline">PWA Multiplataforma</span>
+          </h1>
+          <p class="text-xs text-slate-500 font-medium">Asistencia Facial • Excel • WhatsApp para Tutores</p>
+        </div>
+      </div>
+
+      <!-- Role & Multi-device Switcher -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button id="btnRoleTeacher" onclick="switchRole('TEACHER')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-blue-900 shadow-sm">
+            <i class="fa-solid fa-chalkboard-user mr-1.5"></i>Docente
+          </button>
+          <button id="btnRoleAdmin" onclick="switchRole('ADMIN')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+            <i class="fa-solid fa-user-shield mr-1.5"></i>Admin
+          </button>
+        </div>
+
+        <button onclick="toggleNotifications()" class="relative p-2 rounded-xl text-slate-600 hover:bg-slate-100 border border-slate-200">
+          <i class="fa-solid fa-bell"></i>
+          <span id="notifBadge" class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">2</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Semester & Group Selector Strip -->
+    <div class="bg-slate-100/80 border-t border-slate-200 px-4 py-2">
+      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex items-center space-x-2 overflow-x-auto pb-1 sm:pb-0">
+          <span class="font-bold text-slate-500 whitespace-nowrap"><i class="fa-solid fa-graduation-cap mr-1"></i>Semestre:</span>
+          <div class="flex space-x-1" id="semesterPills">
+            <!-- 1 to 6 rendered via JS -->
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-slate-500">Grupo:</span>
+          <select id="groupSelect" onchange="onGroupChanged()" class="bg-white border border-slate-300 rounded-lg px-2.5 py-1 font-bold text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-600">
+            <!-- Rendered via JS -->
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Banner -->
+  <div id="toastBanner" class="hidden max-w-xl mx-auto mt-3 px-4 transition-all">
+    <div class="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between shadow-sm">
+      <span id="toastMsg" class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-600"></i> Mensaje enviado</span>
+      <button onclick="hideToast()" class="text-emerald-700 hover:text-emerald-900"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex-1 w-full">
+
+    <!-- ==================== DOCENTE VIEW ==================== -->
+    <div id="viewTeacher" class="space-y-6">
+      
+      <!-- Sub-tabs Docente -->
+      <div class="flex border-b border-slate-200 space-x-4 sm:space-x-8 text-sm font-bold">
+        <button onclick="setTeacherTab('FACIAL')" id="tabBtnFacial" class="pb-3 border-b-2 border-blue-900 text-blue-900 flex items-center gap-2">
+          <i class="fa-solid fa-camera"></i> Pase de Lista Facial
+        </button>
+        <button onclick="setTeacherTab('EXCEL')" id="tabBtnExcel" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-file-excel"></i> Carga Excel
+        </button>
+        <button onclick="setTeacherTab('GRADES')" id="tabBtnGrades" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-chart-simple"></i> Calificaciones Parciales
+        </button>
+      </div>
+
+      <!-- TAB 1: FACIAL ATTENDANCE -->
+      <div id="tabContentFacial" class="space-y-6">
+        <!-- Action Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- Camera / Upload Section -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm md:col-span-1 space-y-4">
+            <h3 class="font-black text-slate-900 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-camera-retro text-blue-700"></i> Tomar Foto Grupal del Salón
+            </h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Enfoca a los estudiantes en el aula desde tu celular o computadora. El sistema detectará los rostros presentes automáticamente.
+            </p>
+
+            <div class="flex flex-col gap-2.5">
+              <label class="cursor-pointer bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition">
+                <i class="fa-solid fa-camera text-base"></i> Abrir Cámara del Celular
+                <input type="file" accept="image/*" capture="environment" id="cameraInput" onchange="handlePhotoUpload(event)" class="hidden">
+              </label>
+
+              <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-300 transition">
+                <i class="fa-solid fa-image text-slate-500"></i> Cargar Foto desde Galería/PC
+                <input type="file" accept="image/*" id="galleryInput" onchange="handlePhotoUpload(event)" class="hidden">
+              </label>
+
+              <button onclick="simulateGroupScan()" class="bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-2 border border-teal-200 transition">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Foto Grupal de Demostración
+              </button>
+            </div>
+
+            <!-- Summary KPI -->
+            <div id="attendanceStats" class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex justify-around text-center">
+              <div>
+                <p class="text-slate-400 font-medium">Presentes</p>
+                <p id="statPresents" class="text-lg font-black text-emerald-600">0</p>
+              </div>
+              <div class="border-r border-slate-200"></div>
+              <div>
+                <p class="text-slate-400 font-medium">Faltas</p>
+                <p id="statAbsents" class="text-lg font-black text-rose-600">0</p>
+              </div>
+              <div class="border-r border-slate-200"></div>
+              <div>
+                <p class="text-slate-400 font-medium">Asistencia</p>
+                <p id="statRate" class="text-lg font-black text-blue-900">0%</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Photo & Face Overlay Canvas -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm md:col-span-2 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-black text-slate-900 text-sm flex items-center gap-2">
+                  <i class="fa-solid fa-expand text-emerald-600"></i> Reconocimiento Facial en Tiempo Real
+                </h3>
+                <span id="scanBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Listo para escanear</span>
+              </div>
+
+              <div id="canvasContainer" class="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center border border-slate-800">
+                <img id="previewImage" src="" alt="" class="hidden w-full h-full object-contain">
+                <div id="overlayBoxes" class="absolute inset-0 pointer-events-none"></div>
+                <div id="placeholderPrompt" class="text-center p-6 text-slate-400">
+                  <i class="fa-solid fa-users-viewfinder text-5xl mb-3 text-slate-600"></i>
+                  <p class="text-xs font-semibold">Toma o sube una fotografía del aula para comenzar el pase de lista facial.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Batch Action Buttons -->
+            <div class="flex flex-wrap gap-2.5 mt-4 pt-3 border-t border-slate-100">
+              <button onclick="saveAttendanceSession()" class="flex-1 bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar Asistencia en Base de Datos
+              </button>
+
+              <button onclick="notifyAllAbsenteesWhatsApp()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition">
+                <i class="fa-brands fa-whatsapp text-sm"></i> Notificar a Todos los Tutores por WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Roster List -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <h4 class="font-black text-slate-800 text-xs uppercase tracking-wider">Alumnos Matriculados en el Grupo</h4>
+            <span class="text-xs text-slate-500 font-semibold" id="rosterGroupTitle">4º Semestre - Grupo A</span>
+          </div>
+
+          <div id="rosterContainer" class="divide-y divide-slate-100">
+            <!-- Dynamic rows via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: EXCEL SHEETS -->
+      <div id="tabContentExcel" class="hidden space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="font-black text-slate-900 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-file-import text-blue-900"></i> Importar Lista de Asistencia / Calificaciones Excel
+            </h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Sube una hoja de cálculo (CSV o Excel). El sistema coteja automáticamente el Número de Control y Nombre del estudiante para asignar asistencia o registrar notas.
+            </p>
+
+            <div class="flex gap-2">
+              <label class="flex-1 cursor-pointer bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-folder-open"></i> Elegir Archivo CSV/Excel
+                <input type="file" accept=".csv,text/csv,text/plain" onchange="handleExcelImport(event)" class="hidden">
+              </label>
+
+              <button onclick="loadSampleExcelData()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2.5 px-4 rounded-xl text-xs border border-slate-300 transition">
+                Plantilla Demo 1-Clic
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="font-black text-slate-900 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-file-export text-emerald-700"></i> Exportar Registros a Excel (CSV)
+            </h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Descarga o comparte los informes oficiales de asistencia y parciales en formato compatible con Microsoft Excel y Google Sheets.
+            </p>
+
+            <div class="flex gap-2">
+              <button onclick="exportAttendanceCsv()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-download"></i> Exportar Asistencia
+              </button>
+              <button onclick="exportGradesCsv()" class="flex-1 bg-blue-950 hover:bg-blue-900 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-download"></i> Exportar Calificaciones
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Excel Table Preview -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+            <h4 class="font-black text-slate-800 text-xs uppercase tracking-wider">Vista Previa de Datos de Tabla</h4>
+            <span class="text-xs text-slate-400">Formato Estándar Escolar</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600">
+              <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <tr>
+                  <th class="px-4 py-2.5">No. Control</th>
+                  <th class="px-4 py-2.5">Nombre del Alumno</th>
+                  <th class="px-4 py-2.5">Materia</th>
+                  <th class="px-4 py-2.5">P1</th>
+                  <th class="px-4 py-2.5">P2</th>
+                  <th class="px-4 py-2.5">P3</th>
+                  <th class="px-4 py-2.5">Promedio</th>
+                </tr>
+              </thead>
+              <tbody id="excelPreviewTable" class="divide-y divide-slate-100">
+                <!-- Rows injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: GRADES -->
+      <div id="tabContentGrades" class="hidden space-y-6">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 class="font-black text-slate-900 text-sm">Calificaciones de Parciales & Envío Automático a Tutores</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Envía un reporte individualizado por WhatsApp a cada padre de familia con la calificación de su hijo.</p>
+          </div>
+          <button onclick="notifyAllGradesWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition">
+            <i class="fa-brands fa-whatsapp text-sm"></i> Enviar Parcial a Todos los Tutores
+          </button>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="divide-y divide-slate-100" id="gradesContainer">
+            <!-- Dynamic grades list -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ==================== ADMINISTRADOR VIEW ==================== -->
+    <div id="viewAdmin" class="hidden space-y-6">
+      <!-- Sub-tabs Admin -->
+      <div class="flex border-b border-slate-200 space-x-4 sm:space-x-8 text-sm font-bold">
+        <button onclick="setAdminTab('STUDENTS')" id="adminTabBtnStudents" class="pb-3 border-b-2 border-blue-900 text-blue-900 flex items-center gap-2">
+          <i class="fa-solid fa-id-card"></i> Alumnos (Foto a Foto)
+        </button>
+        <button onclick="setAdminTab('GROUPS')" id="adminTabBtnGroups" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-layer-group"></i> Grupos (1º a 6º Semestre)
+        </button>
+        <button onclick="setAdminTab('REPORTS')" id="adminTabBtnReports" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie"></i> Rendimiento & Reportes
+        </button>
+        <button onclick="setAdminTab('JUSTIF')" id="adminTabBtnJustif" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-file-medical"></i> Justificantes con Foto
+        </button>
+      </div>
+
+      <!-- ADMIN TAB 1: REGISTER STUDENTS -->
+      <div id="adminTabContentStudents" class="space-y-6">
+        <div class="flex items-center justify-between">
+          <h3 class="font-black text-slate-900 text-sm">Base de Datos Facial de Alumnos</h3>
+          <button onclick="openRegisterStudentModal()" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+            <i class="fa-solid fa-user-plus"></i> Registrar Alumno Foto a Foto
+          </button>
+        </div>
+
+        <div id="adminStudentsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Dynamic student cards -->
+        </div>
+      </div>
+
+      <!-- ADMIN TAB 2: GROUPS 1-6 -->
+      <div id="adminTabContentGroups" class="hidden space-y-6">
+        <div class="flex items-center justify-between">
+          <h3 class="font-black text-slate-900 text-sm">Estructura Escolar de 1º a 6º Semestre</h3>
+          <button onclick="openCreateGroupModal()" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+            <i class="fa-solid fa-plus"></i> Crear Nuevo Grupo
+          </button>
+        </div>
+
+        <div id="adminGroupsList" class="space-y-6">
+          <!-- 1 to 6 semester groups -->
+        </div>
+      </div>
+
+      <!-- ADMIN TAB 3: EXECUTIVE REPORTS -->
+      <div id="adminTabContentReports" class="hidden space-y-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs text-slate-400 font-semibold">Matrícula Escolar</p>
+            <p id="kpiTotalStudents" class="text-2xl font-black text-blue-950 mt-1">10</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">Alumnos registrados con foto</p>
+          </div>
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs text-slate-400 font-semibold">Tasa de Asistencia</p>
+            <p class="text-2xl font-black text-emerald-600 mt-1">94.2%</p>
+            <p class="text-[11px] text-emerald-700 mt-0.5">Dentro del rango óptimo</p>
+          </div>
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs text-slate-400 font-semibold">Inasistencias Notificadas</p>
+            <p class="text-2xl font-black text-rose-600 mt-1">8</p>
+            <p class="text-[11px] text-rose-700 mt-0.5">Avisos enviados por WhatsApp</p>
+          </div>
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs text-slate-400 font-semibold">Justificantes con Foto</p>
+            <p class="text-2xl font-black text-amber-500 mt-1">3</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">Comprobantes validados</p>
+          </div>
+        </div>
+
+        <!-- At-risk student alert section -->
+        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 space-y-3">
+          <div class="flex items-center gap-2 text-rose-900 font-bold text-sm">
+            <i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Alumnos en Alerta Temprana (Inasistencias o Promedio Bajo)
+          </div>
+          <div id="atRiskContainer" class="space-y-2">
+            <!-- Dynamic at-risk list -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN TAB 4: JUSTIFICATIONS -->
+      <div id="adminTabContentJustif" class="hidden space-y-6">
+        <h3 class="font-black text-slate-900 text-sm">Expedientes de Justificantes Médicos Presentados</h3>
+        <div id="adminJustifContainer" class="space-y-4">
+          <!-- Dynamic cards -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL: REGISTER STUDENT WITH PHOTO -->
+  <div id="modalRegisterStudent" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-black text-slate-900 text-base">Registrar Alumno Foto a Foto</h3>
+        <button onclick="closeRegisterStudentModal()" class="text-slate-400 hover:text-slate-700 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="flex flex-col items-center gap-2">
+        <div id="regPhotoPreview" class="w-24 h-24 rounded-full bg-slate-100 border-2 border-dashed border-blue-400 flex items-center justify-center overflow-hidden">
+          <i class="fa-solid fa-user text-3xl text-slate-400"></i>
+        </div>
+        <label class="cursor-pointer bg-blue-900 hover:bg-blue-800 text-white font-bold py-1.5 px-3 rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+          <i class="fa-solid fa-camera"></i> Tomar Foto del Rostro
+          <input type="file" accept="image/*" capture="user" onchange="previewStudentFace(event)" class="hidden">
+        </label>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Número de Control *</label>
+          <input type="text" id="regControl" placeholder="Ej. 24040101" class="w-full border rounded-lg p-2 font-mono">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Teléfono Tutor (WhatsApp) *</label>
+          <input type="text" id="regPhone" placeholder="+52 55 1234 5678" class="w-full border rounded-lg p-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nombres *</label>
+          <input type="text" id="regFirst" placeholder="Nombres" class="w-full border rounded-lg p-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Apellidos *</label>
+          <input type="text" id="regLast" placeholder="Apellidos" class="w-full border rounded-lg p-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Semestre</label>
+          <select id="regSemester" class="w-full border rounded-lg p-2 font-bold">
+            <option value="1">1º Semestre</option>
+            <option value="2">2º Semestre</option>
+            <option value="3">3º Semestre</option>
+            <option value="4" selected>4º Semestre</option>
+            <option value="5">5º Semestre</option>
+            <option value="6">6º Semestre</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Grupo</label>
+          <select id="regGroup" class="w-full border rounded-lg p-2 font-bold">
+            <option value="A">Grupo A</option>
+            <option value="B">Grupo B</option>
+            <option value="C">Grupo C</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-bold text-slate-700 mb-1 text-xs">Etiquetas de Rasgos Faciales</label>
+        <input type="text" id="regTags" placeholder="Ej. Cabello rizado, tez clara, lentes metálicos" class="w-full border rounded-lg p-2 text-xs">
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t">
+        <button onclick="closeRegisterStudentModal()" class="px-4 py-2 border rounded-xl text-xs font-bold text-slate-600">Cancelar</button>
+        <button onclick="saveNewStudent()" class="px-4 py-2 bg-blue-900 text-white rounded-xl text-xs font-bold shadow-sm">Guardar Alumno</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: JUSTIFICATION WITH PHOTO -->
+  <div id="modalJustification" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-black text-slate-900 text-base">Registrar Justificante con Foto</h3>
+        <button onclick="closeJustificationModal()" class="text-slate-400 hover:text-slate-700 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="text-xs space-y-2">
+        <p class="font-bold text-blue-900" id="justifStudentInfo">Alumno: Alejandro Morales (21040101)</p>
+        
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Motivo del Justificante *</label>
+          <textarea id="justifReason" rows="2" class="w-full border rounded-lg p-2 text-xs" placeholder="Ej. Cita médica en el IMSS, reposo por infección estomacal..."></textarea>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Foto de Receta / Constancia Médica</label>
+          <div id="justifPhotoPreview" class="w-full h-32 bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden mb-2">
+            <span class="text-slate-400 text-xs flex items-center gap-2"><i class="fa-solid fa-file-image"></i> Sin comprobante</span>
+          </div>
+          <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-300 transition">
+            <i class="fa-solid fa-camera"></i> Tomar Foto del Comprobante
+            <input type="file" accept="image/*" capture="environment" onchange="previewJustifDoc(event)" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t">
+        <button onclick="closeJustificationModal()" class="px-4 py-2 border rounded-xl text-xs font-bold text-slate-600">Cancelar</button>
+        <button onclick="confirmJustification()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-sm">Validar y Justificar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initial State & Data
+    const INITIAL_STUDENTS = [
+      { id: 1, control: '21040101', first: 'Alejandro', last: 'Morales Ruiz', phone: '+525512345678', semester: 4, group: 'A', tags: 'Cabello oscuro corto, cejas pobladas', p1: 9.5, p2: 9.0, p3: 9.2 },
+      { id: 2, control: '21040102', first: 'Valeria', last: 'Gómez Silva', phone: '+525598765432', semester: 4, group: 'A', tags: 'Cabello castaño largo, lentes metálicos', p1: 10.0, p2: 9.8, p3: 9.9 },
+      { id: 3, control: '21040103', first: 'Carlos', last: 'Hernández Torres', phone: '+525544332211', semester: 4, group: 'A', tags: 'Cabello rizado, tez morena clara', p1: 7.5, p2: 8.0, p3: 7.8 },
+      { id: 4, control: '21040104', first: 'Daniela', last: 'Flores Martínez', phone: '+525566778899', semester: 4, group: 'A', tags: 'Cabello recogido lacio, ojos grandes', p1: 8.5, p2: 8.8, p3: 8.6 },
+      { id: 5, control: '21040105', first: 'Mateo', last: 'Ramírez Vargas', phone: '+525533221100', semester: 4, group: 'A', tags: 'Cabello castaño claro, lunar mejilla', p1: 6.0, p2: 6.5, p3: 6.2 },
+      { id: 6, control: '21040106', first: 'Camila', last: 'Castillo Domínguez', phone: '+525588990011', semester: 4, group: 'A', tags: 'Cabello ondulado, pecas en nariz', p1: 7.0, p2: 7.2, p3: 7.1 },
+      { id: 7, control: '19060201', first: 'Sebastián', last: 'Ortega Benítez', phone: '+525577665544', semester: 6, group: 'A', tags: 'Barba incipiente, cabello hacia atrás', p1: 9.0, p2: 8.5, p3: 8.8 },
+      { id: 8, control: '23020301', first: 'Leonardo', last: 'Vázquez Alarcón', phone: '+525599887766', semester: 2, group: 'A', tags: 'Cabello castaño, complexión atlética', p1: 8.0, p2: 8.2, p3: 8.1 }
+    ];
+
+    let students = JSON.parse(localStorage.getItem('edufacial_students')) || INITIAL_STUDENTS;
+    let currentRole = 'TEACHER';
+    let currentSemester = 4;
+    let currentGroup = 'A';
+    let attendanceRoster = [];
+    let selectedStudentForJustif = null;
+
+    function init() {
+      renderSemesterPills();
+      updateGroupSelect();
+      loadGroupRoster();
+      renderGradesTable();
+      renderAdminView();
+    }
+
+    function renderSemesterPills() {
+      const container = document.getElementById('semesterPills');
+      container.innerHTML = [1,2,3,4,5,6].map(sem => `
+        <button onclick="selectSemester(${sem})" class="px-2.5 py-1 rounded-lg font-bold text-xs transition ${sem === currentSemester ? 'bg-blue-900 text-white' : 'bg-white text-slate-600 border border-slate-200'}">
+          ${sem}º
+        </button>
+      `).join('');
+    }
+
+    function selectSemester(sem) {
+      currentSemester = sem;
+      renderSemesterPills();
+      updateGroupSelect();
+      loadGroupRoster();
+      renderGradesTable();
+      renderAdminView();
+    }
+
+    function updateGroupSelect() {
+      const sel = document.getElementById('groupSelect');
+      sel.innerHTML = `
+        <option value="A" ${currentGroup === 'A' ? 'selected' : ''}>Grupo A</option>
+        <option value="B" ${currentGroup === 'B' ? 'selected' : ''}>Grupo B</option>
+      `;
+    }
+
+    function onGroupChanged() {
+      currentGroup = document.getElementById('groupSelect').value;
+      loadGroupRoster();
+      renderGradesTable();
+      renderAdminView();
+    }
+
+    function switchRole(role) {
+      currentRole = role;
+      document.getElementById('btnRoleTeacher').className = role === 'TEACHER' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-blue-900 shadow-sm' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+      document.getElementById('btnRoleAdmin').className = role === 'ADMIN' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-blue-900 shadow-sm' : 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+      
+      document.getElementById('viewTeacher').classList.toggle('hidden', role !== 'TEACHER');
+      document.getElementById('viewAdmin').classList.toggle('hidden', role !== 'ADMIN');
+    }
+
+    function setTeacherTab(tab) {
+      ['Facial', 'Excel', 'Grades'].forEach(t => {
+        document.getElementById('tabContent' + t).classList.toggle('hidden', t.toUpperCase() !== tab);
+        const btn = document.getElementById('tabBtn' + t);
+        if (t.toUpperCase() === tab) {
+          btn.className = 'pb-3 border-b-2 border-blue-900 text-blue-900 flex items-center gap-2 font-bold';
+        } else {
+          btn.className = 'pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-900 flex items-center gap-2 font-bold';
+        }
+      });
+    }
+
+    function setAdminTab(tab) {
+      ['Students', 'Groups', 'Reports', 'Justif'].forEach(t => {
+        document.getElementById('adminTabContent' + t).classList.toggle('hidden', t.toUpperCase() !== tab);
+        const btn = document.getElementById('adminTabBtn' + t);
+        if (t.toUpperCase() === tab) {
+          btn.className = 'pb-3 border-b-2 border-blue-900 text-blue-900 flex items-center gap-2 font-bold';
+        } else {
+          btn.className = 'pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-900 flex items-center gap-2 font-bold';
+        }
+      });
+    }
+
+    function loadGroupRoster() {
+      const filtered = students.filter(s => s.semester === currentSemester && s.group === currentGroup);
+      attendanceRoster = filtered.map(s => ({
+        ...s,
+        present: true,
+        justified: false
+      }));
+      renderRosterList();
+      updateAttendanceStats();
+    }
+
+    function renderRosterList() {
+      document.getElementById('rosterGroupTitle').innerText = `${currentSemester}º Semestre - Grupo ${currentGroup}`;
+      const container = document.getElementById('rosterContainer');
+      if (attendanceRoster.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-xs text-slate-400">No hay alumnos en este grupo. Regístralos en el panel de Administrador.</div>`;
+        return;
+      }
+
+      container.innerHTML = attendanceRoster.map(s => `
+        <div class="p-3.5 flex items-center justify-between gap-3 ${s.present ? 'bg-white' : 'bg-rose-50/50'}">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center font-bold text-xs">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div>
+              <p class="font-bold text-slate-900 text-xs sm:text-sm">${s.first} ${s.last}</p>
+              <p class="text-[11px] text-slate-500 font-mono">Control: ${s.control} • Tutor: ${s.phone}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="toggleAttendance('${s.control}')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${s.present ? 'bg-emerald-100 text-emerald-800' : (s.justified ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800')}">
+              <i class="fa-solid ${s.present ? 'fa-check' : (s.justified ? 'fa-file-shield' : 'fa-xmark')}"></i>
+              ${s.present ? 'Presente' : (s.justified ? 'Justificada' : 'Falta')}
+            </button>
+
+            ${!s.present ? `
+              <button onclick="sendAbsenceWhatsApp('${s.control}')" class="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs shadow-sm" title="Avisar a Tutor por WhatsApp">
+                <i class="fa-brands fa-whatsapp text-sm"></i>
+              </button>
+              <button onclick="openJustificationModal('${s.control}')" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs border border-slate-300" title="Registrar Justificante con Foto">
+                <i class="fa-solid fa-file-medical"></i>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleAttendance(control) {
+      attendanceRoster = attendanceRoster.map(s => s.control === control ? { ...s, present: !s.present } : s);
+      renderRosterList();
+      updateAttendanceStats();
+    }
+
+    function updateAttendanceStats() {
+      const presents = attendanceRoster.filter(s => s.present).length;
+      const absents = attendanceRoster.length - presents;
+      const rate = attendanceRoster.length > 0 ? Math.round((presents / attendanceRoster.length) * 100) : 0;
+
+      document.getElementById('statPresents').innerText = presents;
+      document.getElementById('statAbsents').innerText = absents;
+      document.getElementById('statRate').innerText = rate + '%';
+    }
+
+    function simulateGroupScan() {
+      document.getElementById('placeholderPrompt').classList.add('hidden');
+      const img = document.getElementById('previewImage');
+      img.src = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=80';
+      img.classList.remove('hidden');
+
+      const boxes = document.getElementById('overlayBoxes');
+      boxes.innerHTML = `
+        <div class="face-box" style="top: 25%; left: 18%; width: 14%; height: 28%;">
+          <span class="face-badge -top-5 left-0">Alejandro 98%</span>
+        </div>
+        <div class="face-box" style="top: 20%; left: 40%; width: 15%; height: 30%;">
+          <span class="face-badge -top-5 left-0">Valeria 99%</span>
+        </div>
+        <div class="face-box" style="top: 24%; left: 65%; width: 14%; height: 28%;">
+          <span class="face-badge -top-5 left-0">Carlos 95%</span>
+        </div>
+      `;
+
+      document.getElementById('scanBadge').innerText = '3 Rostros Identificados';
+      document.getElementById('scanBadge').className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+
+      // Set attendance according to scan
+      if (attendanceRoster.length > 0) {
+        attendanceRoster[0].present = true;
+        attendanceRoster[1].present = true;
+        attendanceRoster[2].present = true;
+        if (attendanceRoster[3]) attendanceRoster[3].present = false;
+        renderRosterList();
+        updateAttendanceStats();
+      }
+
+      showToast('Reconocimiento facial completado: 3 alumnos identificados en el aula.');
+    }
+
+    function handlePhotoUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        document.getElementById('placeholderPrompt').classList.add('hidden');
+        const img = document.getElementById('previewImage');
+        img.src = evt.target.result;
+        img.classList.remove('hidden');
+        simulateGroupScan();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function sendAbsenceWhatsApp(control) {
+      const s = students.find(item => item.control === control);
+      if (!s) return;
+      const msg = `📢 *AVISO DE INASISTENCIA ESCOLAR*\n\nEstimado tutor:\nLe informamos que el/la alumno(a) *${s.first} ${s.last}* con Número de Control *${s.control}* del grupo *${s.semester}º ${s.group}*, *NO SE PRESENTÓ* a clases el día de hoy.\n\n📌 Si cuenta con receta médica o justificante, favor de responder con una foto del documento.\n\n_Atte: Coordinación Escolar_`;
+      const cleanPhone = s.phone.replace(/[^0-9]/g, '');
+      const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
+      showToast(`Mensaje de inasistencia enviado al tutor de ${s.first} por WhatsApp.`);
+    }
+
+    function notifyAllAbsenteesWhatsApp() {
+      const absents = attendanceRoster.filter(s => !s.present);
+      if (absents.length === 0) {
+        alert('No hay alumnos ausentes en esta sesión.');
+        return;
+      }
+      absents.forEach(s => sendAbsenceWhatsApp(s.control));
+    }
+
+    function saveAttendanceSession() {
+      showToast('Asistencia de la sesión guardada con éxito en la base de datos.');
+    }
+
+    function renderGradesTable() {
+      const filtered = students.filter(s => s.semester === currentSemester && s.group === currentGroup);
+      const container = document.getElementById('gradesContainer');
+      const preview = document.getElementById('excelPreviewTable');
+
+      container.innerHTML = filtered.map(s => `
+        <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p class="font-bold text-slate-900 text-sm">${s.first} ${s.last}</p>
+            <p class="text-xs text-slate-500 font-mono">Control: ${s.control} • Materia: Programación Móvil</p>
+          </div>
+          <div class="flex items-center gap-4 text-xs font-bold">
+            <span class="px-2.5 py-1 bg-slate-100 rounded-lg">P1: ${s.p1}</span>
+            <span class="px-2.5 py-1 bg-slate-100 rounded-lg">P2: ${s.p2}</span>
+            <span class="px-2.5 py-1 bg-slate-100 rounded-lg">P3: ${s.p3}</span>
+            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg font-black">Prom: ${((s.p1 + s.p2 + s.p3)/3).toFixed(1)}</span>
+            <button onclick="sendGradeWhatsApp('${s.control}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-xl flex items-center gap-1.5">
+              <i class="fa-brands fa-whatsapp"></i> Enviar a Tutor
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      preview.innerHTML = filtered.map(s => `
+        <tr>
+          <td class="px-4 py-2 font-mono">${s.control}</td>
+          <td class="px-4 py-2 font-bold">${s.first} ${s.last}</td>
+          <td class="px-4 py-2">Programación Móvil</td>
+          <td class="px-4 py-2">${s.p1}</td>
+          <td class="px-4 py-2">${s.p2}</td>
+          <td class="px-4 py-2">${s.p3}</td>
+          <td class="px-4 py-2 font-black text-blue-900">${((s.p1+s.p2+s.p3)/3).toFixed(1)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function sendGradeWhatsApp(control) {
+      const s = students.find(item => item.control === control);
+      if (!s) return;
+      const prom = ((s.p1 + s.p2 + s.p3) / 3).toFixed(1);
+      const msg = `📊 *REPORTE DE CALIFICACIONES*\n\nEstimado tutor de *${s.first} ${s.last}* (No. Control: *${s.control}*):\nLe compartimos sus calificaciones:\n• Parcial 1: ${s.p1}\n• Parcial 2: ${s.p2}\n• Parcial 3: ${s.p3}\n📈 *Promedio Actual:* ${prom}\n\n_Atte: Dirección Escolar_`;
+      const cleanPhone = s.phone.replace(/[^0-9]/g, '');
+      const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
+      showToast(`Calificaciones enviadas a WhatsApp del tutor.`);
+    }
+
+    function notifyAllGradesWhatsApp() {
+      const filtered = students.filter(s => s.semester === currentSemester && s.group === currentGroup);
+      filtered.forEach(s => sendGradeWhatsApp(s.control));
+    }
+
+    function renderAdminView() {
+      // Students grid
+      const filtered = students.filter(s => s.semester === currentSemester && s.group === currentGroup);
+      document.getElementById('adminStudentsGrid').innerHTML = filtered.map(s => `
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-3">
+          <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center font-bold text-sm shrink-0">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div class="flex-1 text-xs space-y-1">
+            <p class="font-bold text-slate-900 text-sm">${s.first} ${s.last}</p>
+            <p class="font-mono text-blue-900">Control: ${s.control}</p>
+            <p class="text-slate-500"><i class="fa-brands fa-whatsapp text-emerald-600"></i> ${s.phone}</p>
+            <p class="text-[11px] text-slate-400">🏷️ ${s.tags}</p>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('kpiTotalStudents').innerText = students.length;
+
+      // Render at-risk
+      const atRisk = students.filter(s => ((s.p1+s.p2+s.p3)/3) < 7.5);
+      document.getElementById('atRiskContainer').innerHTML = atRisk.map(s => `
+        <div class="bg-white p-3 rounded-xl border border-rose-200 flex justify-between items-center text-xs">
+          <div>
+            <p class="font-bold text-slate-900">${s.first} ${s.last} (${s.control})</p>
+            <p class="text-rose-600 font-semibold">Promedio bajo: ${((s.p1+s.p2+s.p3)/3).toFixed(1)} • Tutor: ${s.phone}</p>
+          </div>
+          <button onclick="sendGradeWhatsApp('${s.control}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">
+            <i class="fa-brands fa-whatsapp"></i> Contactar
+          </button>
+        </div>
+      `).join('');
+
+      // Groups list 1 to 6
+      document.getElementById('adminGroupsList').innerHTML = [1,2,3,4,5,6].map(sem => {
+        const count = students.filter(s => s.semester === sem).length;
+        return `
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+            <div>
+              <p class="font-bold text-slate-900 text-sm">${sem}º Semestre</p>
+              <p class="text-xs text-slate-500">Tronco Común & Especialidades Técnicas • Turno Matutino</p>
+            </div>
+            <span class="px-3 py-1 rounded-lg bg-blue-100 text-blue-900 font-bold text-xs">${count} alumnos</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Modal Handlers
+    function openRegisterStudentModal() {
+      document.getElementById('modalRegisterStudent').classList.remove('hidden');
+    }
+    function closeRegisterStudentModal() {
+      document.getElementById('modalRegisterStudent').classList.add('hidden');
+    }
+    function saveNewStudent() {
+      const control = document.getElementById('regControl').value.trim();
+      const first = document.getElementById('regFirst').value.trim();
+      const last = document.getElementById('regLast').value.trim();
+      const phone = document.getElementById('regPhone').value.trim();
+      const semester = parseInt(document.getElementById('regSemester').value);
+      const group = document.getElementById('regGroup').value;
+      const tags = document.getElementById('regTags').value.trim();
+
+      if (!control || !first || !last || !phone) {
+        alert('Por favor completa todos los campos requeridos (*)');
+        return;
+      }
+
+      students.push({
+        id: Date.now(),
+        control, first, last, phone, semester, group, tags,
+        p1: 8.5, p2: 8.5, p3: 8.5
+      });
+      localStorage.setItem('edufacial_students', JSON.stringify(students));
+      closeRegisterStudentModal();
+      init();
+      showToast(`Alumno ${first} ${last} registrado con éxito.`);
+    }
+
+    function openJustificationModal(control) {
+      selectedStudentForJustif = students.find(s => s.control === control);
+      if (!selectedStudentForJustif) return;
+      document.getElementById('justifStudentInfo').innerText = `Alumno: ${selectedStudentForJustif.first} ${selectedStudentForJustif.last} (${selectedStudentForJustif.control})`;
+      document.getElementById('modalJustification').classList.remove('hidden');
+    }
+    function closeJustificationModal() {
+      document.getElementById('modalJustification').classList.add('hidden');
+    }
+    function confirmJustification() {
+      if (selectedStudentForJustif) {
+        attendanceRoster = attendanceRoster.map(s => s.control === selectedStudentForJustif.control ? { ...s, justified: true } : s);
+        renderRosterList();
+        closeJustificationModal();
+        showToast(`Justificante validado con foto para ${selectedStudentForJustif.first}.`);
+      }
+    }
+
+    function exportAttendanceCsv() {
+      let csv = 'Numero_Control,Nombre_Alumno,Semestre,Grupo,Estatus\n';
+      attendanceRoster.forEach(s => {
+        csv += `${s.control},"${s.first} ${s.last}",${s.semester},${s.group},${s.present ? 'PRESENTE' : (s.justified ? 'JUSTIFICADA' : 'FALTA')}\n`;
+      });
+      downloadCsvFile('asistencia_escolar.csv', csv);
+    }
+
+    function exportGradesCsv() {
+      let csv = 'Numero_Control,Nombre_Alumno,Semestre,Grupo,Parcial_1,Parcial_2,Parcial_3,Promedio\n';
+      students.forEach(s => {
+        csv += `${s.control},"${s.first} ${s.last}",${s.semester},${s.group},${s.p1},${s.p2},${s.p3},${((s.p1+s.p2+s.p3)/3).toFixed(1)}\n`;
+      });
+      downloadCsvFile('calificaciones_parciales.csv', csv);
+    }
+
+    function downloadCsvFile(filename, content) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast(`Archivo ${filename} descargado.`);
+    }
+
+    function showToast(msg) {
+      const b = document.getElementById('toastBanner');
+      document.getElementById('toastMsg').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> ${msg}`;
+      b.classList.remove('hidden');
+      setTimeout(() => b.classList.add('hidden'), 4000);
+    }
+    function hideToast() {
+      document.getElementById('toastBanner').classList.add('hidden');
+    }
+
+    window.addEventListener('load', () => {
+      init();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>
